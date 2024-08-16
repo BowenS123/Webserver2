@@ -1,5 +1,5 @@
 https://server-of-bowen.pxl.bjth.xyz {
     root * /var/www
-    encode gzip
+    php_fastcgi unix//run/php/php8.3-fpm.sock
     file_server
 }
