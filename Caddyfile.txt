@@ -1,5 +1,23 @@
-https://server-of-bowen.pxl.bjth.xyz {
-    root * /var/www
-    php_fastcgi unix//run/php/php8.3-fpm.sock
-    file_server
+# The Caddyfile is an easy way to configure your Caddy web server.
+#
+# Unless the file starts with a global options block, the first
+# uncommented line is always the address of your site.
+#
+# To use your own domain name (with automatic HTTPS), first make
+# sure your domain's A/AAAA DNS records are properly pointed to
+# this machine's public IP, then replace ":80" below with your
+# domain name.
+
+server-of-bowen.pxl.bjth.xyz {
+	# Set this path to your site's directory.
+	root * /var/www
+
+	# Enable the static file server.
+	file_server
+
+	# Or serve a PHP site through php-fpm:
+	php_fastcgi unix//run/php/php8.3-fpm.sock
 }
+
+# Refer to the Caddy docs for more information:
+# https://caddyserver.com/docs/caddyfile
