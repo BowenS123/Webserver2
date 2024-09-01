@@ -1,16 +1,16 @@
 <?php
 // CORS headers
 header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: POST, OPTIONS");
+header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
 header("Content-Type: application/json");
 
-// Handle OPTIONS request for CORS preflight
+// Behandle OPTIONS verzoek voor CORS preflight
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit();
 }
-    
+
 // Database connection settings
 $host = 'localhost';
 $db   = 'messages_db';
@@ -26,45 +26,62 @@ $options = [
 ];
 
 try {
-    // Create a PDO instance (connect to the database)
+    // Create a PDO instance (connect database)
     $pdo = new PDO($dsn, $user, $pass, $options);
     $pdo->exec("SET TIME ZONE 'Europe/Amsterdam'");
-    echo json_encode(['status' => 'success', 'message' => 'connected Database']);
 } catch (\PDOException $e) {
-    // If there is an error, stop execution and show the error
+    // Error bericht
     http_response_code(500);
     echo json_encode(['status' => 'error', 'message' => 'Database connection failed: ' . $e->getMessage()]);
     exit;
 }
 
-// Check if the request method is POST
+// Behandel POST verzoek om bericht toe te voegen.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Retrieve the raw POST data
     $data = json_decode(file_get_contents('php://input'), true);
 
-    // Check if data is not empty
+    // Controle voor lege bericht
     if (isset($data['message']) && !empty($data['message'])) {
         $message = $data['message'];
 
-        // Prepare and execute the SQL INSERT statement
+        // Execute de SQL INSERT statement
         $sql = 'INSERT INTO messages (message) VALUES (:message)';
         $stmt = $pdo->prepare($sql);
         try {
             $stmt->execute(['message' => $message]);
-            // Respond with a success message
+            // Bericht approved
             echo json_encode(['status' => 'success', 'message' => 'Message stored successfully']);
         } catch (\PDOException $e) {
-            // If there is an error with the SQL statement
+            // Fail van SQL
             http_response_code(500);
             echo json_encode(['status' => 'error', 'message' => 'Database operation failed: ' . $e->getMessage()]);
         }
     } else {
-        // If the message is missing or empty, return an error
+        // Error geen bericht
         http_response_code(400);
         echo json_encode(['status' => 'error', 'message' => 'No message provided']);
     }
-} else {
-    // If the request method is not POST, return a method not allowed error
-    http_response_code(405);
-    echo json_encode(['status' => 'error', 'message' => 'Method Not Allowed']);
+} 
+
+// Berichtgegevens voor grafiek
+elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    // Berichtgegevens op dagen
+    $sql = "
+        SELECT
+            DATE(created_at) AS date,
+            COUNT(*) AS message_count
+        FROM messages
+        GROUP BY DATE(created_at)
+        ORDER BY DATE(created_at) DESC
+    ";
+    $stmt = $pdo->query($sql);
+
+    // Controle op data
+    if ($stmt->rowCount() > 0) {
+        $data = $stmt->fetchAll();
+        echo json_encode($data);
+    } else {
+        echo json_encode([]);
+    }
 }
+
